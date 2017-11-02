@@ -97,8 +97,16 @@ defmodule Mongo.Ecto.Connection do
     opts     = query.opts ++ opts
     query    = query.query
 
-    case query(repo, :update_one, [coll, query, command], opts) do
-      {:ok, %{modified_count: 1}} ->
+    # use MongoDB command instead of update
+    q = [
+      update: coll,
+      updates: [
+        [ q: query, u: command ]
+      ]
+    ]
+
+    case query(repo, :command, [q], opts) do
+      {:ok, %{"nModified" => 1, "ok" => ok}} when ok == 1 -> # to check 1 and 1.0
         {:ok, []}
       {:ok, _} ->
         {:error, :stale}
